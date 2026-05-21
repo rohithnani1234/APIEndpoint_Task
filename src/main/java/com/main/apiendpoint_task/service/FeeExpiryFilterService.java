@@ -74,6 +74,11 @@ public class FeeExpiryFilterService {
 
         response.put("data",grouped);
 
+        response.put("page",page);
+        response.put("size",size);
+        response.put("totalElements",records.size());
+        response.put("totalPages",(int)Math.ceil((double)records.size()/size));
+
         return response;
     }
 //    public
