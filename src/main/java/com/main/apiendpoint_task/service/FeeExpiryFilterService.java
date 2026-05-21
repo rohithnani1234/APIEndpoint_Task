@@ -15,21 +15,23 @@ public class FeeExpiryFilterService {
         this.feeExpiryFilterRepo = feeExpiryFilterRepo;
     }
 
-    public Map<String , Object> getDashboard(String search,String sortBy, String direction){
+    public Map<String , Object> getDashboard(String search,String sortBy, String direction,int page,int size){
         List<FeeExpiryFilter> records=feeExpiryFilterRepo.getDashboardData(search);
 
         Comparator<FeeExpiryFilter> comparator=Comparator.comparing(FeeExpiryFilter::getExpiryDate,Comparator.nullsLast(java.time.LocalDate::compareTo));
 
-        switch (sortBy){
-            case "clientName":
-                comparator= Comparator.comparing(FeeExpiryFilter::getClientName,Comparator.nullsLast(String::compareToIgnoreCase));
-                break;
-            case "feeLabel":
-                comparator=Comparator.comparing(FeeExpiryFilter::getFeeLabel,Comparator.nullsLast(String::compareToIgnoreCase));
-                break;
-            case "expiryDate":
-                comparator=Comparator.comparing(FeeExpiryFilter::getExpiryDate,Comparator.nullsLast(java.time.LocalDate::compareTo));
-                break;
+        if(sortBy!=null){
+            switch (sortBy){
+                case "clientName":
+                    comparator= Comparator.comparing(FeeExpiryFilter::getClientName,Comparator.nullsLast(String::compareToIgnoreCase));
+                    break;
+                case "feeLabel":
+                    comparator=Comparator.comparing(FeeExpiryFilter::getFeeLabel,Comparator.nullsLast(String::compareToIgnoreCase));
+                    break;
+                case "expiryDate":
+                    comparator=Comparator.comparing(FeeExpiryFilter::getExpiryDate,Comparator.nullsLast(java.time.LocalDate::compareTo));
+                    break;
+            }
         }
 
         if("desc".equalsIgnoreCase(direction)){
@@ -37,6 +39,15 @@ public class FeeExpiryFilterService {
         }
 
         records.sort(comparator);
+
+        int start=page*size;
+        int end=Math.min(start+size,records.size());
+        List<FeeExpiryFilter> paginatedList;
+        if(start>=records.size()) {
+            paginatedList = new ArrayList<>();
+        } else{
+            paginatedList=records.subList(start,end);
+        }
 
         Map<String, List<FeeExpiryFilter>> grouped=new HashMap<>();
         grouped.put("oneMonth",new ArrayList<>());
