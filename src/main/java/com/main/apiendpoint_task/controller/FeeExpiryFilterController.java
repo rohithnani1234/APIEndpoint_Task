@@ -21,7 +21,10 @@ public class FeeExpiryFilterController {
     @GetMapping("/expiry-dashboard")
     public Map<String, Object> getDashboard(@RequestParam(required = false) String search,
                                             @RequestParam(defaultValue = "expiryDate") String sortBy,
-                                            @RequestParam(defaultValue = "asc")String direction){
-        return feeExpiryFilterService.getDashboard(search,sortBy,direction);
+                                            @RequestParam(defaultValue = "asc")String direction,
+                                            @RequestParam(defaultValue = "0")int page,
+                                            @RequestParam(defaultValue = "5")int size,
+                                            @RequestParam(required = false)String bucket){
+        return feeExpiryFilterService.getDashboard(search,sortBy,direction,page,size,bucket);
     }
 }

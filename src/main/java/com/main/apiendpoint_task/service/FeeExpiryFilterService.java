@@ -15,23 +15,31 @@ public class FeeExpiryFilterService {
         this.feeExpiryFilterRepo = feeExpiryFilterRepo;
     }
 
-    public Map<String , Object> getDashboard(String search,String sortBy, String direction,int page,int size){
+    public Map<String , Object> getDashboard(String search,String sortBy, String direction,int page,int size,String bucket){
         List<FeeExpiryFilter> records=feeExpiryFilterRepo.getDashboardData(search);
 
         Comparator<FeeExpiryFilter> comparator=Comparator.comparing(FeeExpiryFilter::getExpiryDate,Comparator.nullsLast(java.time.LocalDate::compareTo));
 
-        if(sortBy!=null){
-            switch (sortBy){
-                case "clientName":
-                    comparator= Comparator.comparing(FeeExpiryFilter::getClientName,Comparator.nullsLast(String::compareToIgnoreCase));
-                    break;
-                case "feeLabel":
-                    comparator=Comparator.comparing(FeeExpiryFilter::getFeeLabel,Comparator.nullsLast(String::compareToIgnoreCase));
-                    break;
-                case "expiryDate":
-                    comparator=Comparator.comparing(FeeExpiryFilter::getExpiryDate,Comparator.nullsLast(java.time.LocalDate::compareTo));
-                    break;
-            }
+//        if(sortBy!=null){
+//            switch (sortBy){
+//                case "clientName":
+//                    comparator= Comparator.comparing(FeeExpiryFilter::getClientName,Comparator.nullsLast(String::compareToIgnoreCase));
+//                    break;
+//                case "feeLabel":
+//                    comparator=Comparator.comparing(FeeExpiryFilter::getFeeLabel,Comparator.nullsLast(String::compareToIgnoreCase));
+//                    break;
+//                case "expiryDate":
+//                    comparator=Comparator.comparing(FeeExpiryFilter::getExpiryDate,Comparator.nullsLast(java.time.LocalDate::compareTo));
+//                    break;
+//            }
+//        }
+
+        if ("clientName".equals(sortBy)) {
+            comparator = Comparator.comparing(FeeExpiryFilter::getClientName,
+                    Comparator.nullsLast(String::compareToIgnoreCase));
+        } else if ("feeLabel".equals(sortBy)) {
+            comparator = Comparator.comparing(FeeExpiryFilter::getFeeLabel,
+                    Comparator.nullsLast(String::compareToIgnoreCase));
         }
 
         if("desc".equalsIgnoreCase(direction)){
@@ -40,39 +48,59 @@ public class FeeExpiryFilterService {
 
         records.sort(comparator);
 
-        int start=page*size;
-        int end=Math.min(start+size,records.size());
-        List<FeeExpiryFilter> paginatedList;
-        if(start>=records.size()) {
-            paginatedList = new ArrayList<>();
-        } else{
-            paginatedList=records.subList(start,end);
-        }
-
         Map<String, List<FeeExpiryFilter>> grouped=new HashMap<>();
-        grouped.put("oneMonth",new ArrayList<>());
-        grouped.put("threeMonths",new ArrayList<>());
-        grouped.put("sixMonths",new ArrayList<>());
+        grouped.put("ONE_MONTH",new ArrayList<>());
+        grouped.put("THREE_MONTH",new ArrayList<>());
+        grouped.put("SIX_MONTH",new ArrayList<>());
 
         for(FeeExpiryFilter feeExpiryFilter:records){
-            switch (feeExpiryFilter.getBucket()){
-                case "ONE_MONTH":grouped.get("oneMonth").add(feeExpiryFilter);
-                break;
-                case "THREE_MONTH":grouped.get("threeMonths").add(feeExpiryFilter);
-                break;
-                case "SIX_MONTH":grouped.get("sixMonths").add(feeExpiryFilter);
-                break;
+            if(feeExpiryFilter.getBucket()!=null){
+                grouped.get(feeExpiryFilter.getBucket()).add(feeExpiryFilter);
             }
         }
 
-        Map<String, Object> response=new HashMap<>();
-        response.put("summary",Map.of(
-                "oneMonth",grouped.get("oneMonth").size(),
-                "threeMonths",grouped.get("threeMonths").size(),
-                "sixMonths",grouped.get("sixMonths").size()
-        ));
+        Map<String, Object> summary=Map.of(
+                "oneMonth",grouped.get("ONE_MONTH").size(),
+                "threeMonths",grouped.get("THREE_MONTH").size(),
+                "sixMonths",grouped.get("SIX_MONTH").size()
+        );
 
-        response.put("data",grouped);
+        List<FeeExpiryFilter> selectedList;
+
+        if(bucket==null){
+            selectedList=records;
+        } else{
+            selectedList=grouped.getOrDefault(bucket,new ArrayList<>());
+        }
+
+        int start=page*size;
+        int end=Math.min(start+size,selectedList.size());
+        List<FeeExpiryFilter> paginatedList;
+        if(start>=selectedList.size()) {
+            paginatedList = new ArrayList<>();
+        } else{
+            paginatedList=selectedList.subList(start,end);
+        }
+
+//        for(FeeExpiryFilter feeExpiryFilter:records){
+//            switch (feeExpiryFilter.getBucket()){
+//                case "ONE_MONTH":grouped.get("oneMonth").add(feeExpiryFilter);
+//                break;
+//                case "THREE_MONTH":grouped.get("threeMonths").add(feeExpiryFilter);
+//                break;
+//                case "SIX_MONTH":grouped.get("sixMonths").add(feeExpiryFilter);
+//                break;
+//            }
+//        }
+
+        Map<String, Object> response=new HashMap<>();
+//        response.put("summary",Map.of(
+//                "oneMonth",grouped.get("ONE_MONTH").size(),
+//                "threeMonths",grouped.get("THREE_MONTH").size(),
+//                "sixMonths",grouped.get("SIX_MONTH").size()
+//        ));
+        response.put("summary",summary);
+        response.put("data",paginatedList);
 
         response.put("page",page);
         response.put("size",size);
